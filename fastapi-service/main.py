@@ -16,24 +16,21 @@ def home():
 # Run the server with: uvicorn main:app --reload (install with: pip install uvicorn)
 # ---------------------------------
 
+# ---------------------------------
 @app.post("/import")
 async def import_file(file: UploadFile = File(...)):
     df = pd.read_csv(file.file)
-    data = df.to_dict(orient="records")  # converts to JSON format
-    return {"data": data}  # returns structured JSON
 
-# ---------------------------------
+    # replace NaN values to avoid JSON issues
+    df.fillna(0, inplace=True)
 
+    # convert to JSON
+    data = df.to_dict(orient="records")
 
-@app.post("/import")
-async def import_file(file: UploadFile = File(...)):
-    df = pd.read_csv(file.file)  # reads CSV file
-    data = df.to_dict(orient="records")  # converts to JSON format
-
-    # Send data to the Express.js server
+    # send data to Node.js server
     try:
         response = requests.post(NODE_SERVER_URL, json=data)
         response.raise_for_status()
         return {"message": "Data sent to Express successfully!", "response": response.json()}
     except requests.exceptions.RequestException as e:
-        return {"error": "Failed to send data to server", "details": str(e)} 
+        return {"error": "Failed to send data to server", "details": str(e)}
